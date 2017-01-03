@@ -15,6 +15,20 @@ cd wherever-you-cloned-it-to
 npm link
 ```
 
+If you recieve a ``SyntaxError: Unexpected token ...`` upon running the `swa` command, make sure you are running a version of node that supports ES6 syntax (5.11.0 and up). 
+
+Under some circumstances, libxmljs may throw an error that looks like this:
+```
+Error: Could not locate the bindings file. Tried:
+ → /root/swa-dashboard/node_modules/libxmljs/build/xmljs.node
+ ```
+You can fix it and run `swa` successfully by rebuilding libxmljs manually:
+```
+sudo npm install -g node-gyp
+cd node_modules/libxmljs
+node-gyp rebuild
+```
+
 ## Usage
 It will scrape Southwest's prices every `n` minutes (`n` = whatever interval you
 define via the `--interval` flag) and compare the results, letting you know the
