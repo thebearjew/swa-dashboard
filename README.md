@@ -4,30 +4,14 @@ Dashboard to monitor and receive alerts for changes in Southwest fare prices.
 ![image](https://cloud.githubusercontent.com/assets/6979737/17744714/99f15da2-646e-11e6-8f13-60c716f1e865.png)
 
 ## Why?
-I'm a lazy programmer who was tired of checking flight prices … and I really wanted
-to try out Twilio and [blessed](https://github.com/chjj/blessed/). ¯\\\_(ツ)\_/¯
+I'm a lazy programmer who was tired of checking flight prices. ¯\\\_(ツ)\_/¯
 
 ## Installation
-Since I would rather not get in trouble for publishing this tool to npm, you can clone the repo locally and use `npm link` to use the executable.
+Since I would rather not get in trouble for publishing this tool to npm, you can
+clone the repo locally and use `npm link` to use the executable.
 ```
 cd wherever-you-cloned-it-to
 npm link
-```
-
-When building the app, the sub module node-gyp has a dependency on Python 2 at this time.
-
-If you recieve a ``SyntaxError: Unexpected token ...`` upon running the `swa` command, make sure you are running a version of node that supports ES6 syntax (5.11.0 and up).
-
-Under some circumstances, libxmljs may throw an error that looks like this:
-```
-Error: Could not locate the bindings file. Tried:
- → /root/swa-dashboard/node_modules/libxmljs/build/xmljs.node
-```
-You can fix it and run `swa` successfully by rebuilding libxmljs manually:
-```
-sudo npm install -g node-gyp
-cd node_modules/libxmljs
-node-gyp rebuild
 ```
 
 ## Usage
@@ -39,17 +23,17 @@ the default fare type is dollars.
 You may optionally set the `--individual-deal-price` flag, which will alert you
 if either fare price falls below the threshold you define. There is also the
 optional `--total-deal-price` flag, which will alert you if the combined total
-of both fares falls below the threshold. Other than `--interval` and the
-Twilio-related options, all other flags are required.
+of both fares falls below the threshold. Most flags are required, unless stated
+otherwise.
 
 ```bash
 swa \
   --from 'DAL' \
   --to 'LGA' \
-  --leave-date '11/01/2016' \
-  --leave-time anytime \ # Can be anytime (default), morning, afternoon, evening (optional)
-  --return-date '11/08/2016' \
-  --return-time anytime \ # Can be anytime (default), morning, afternoon, evening (optional)
+  --leave-date '11/01/2017' \
+  --return-date '11/08/2017' \
+  --leave-time anytime \ # Can be anytime, morning, afternoon, evening (optional)
+  --return-time anytime \ # Can be anytime, morning, afternoon, evening (optional)
   --fare-type 'dollars' \ # Can be dollars or points (optional)
   --passengers 2 \
   --individual-deal-price 50 \ # In dollars or points (optional)
@@ -69,4 +53,30 @@ export TWILIO_ACCOUNT_SID=""
 export TWILIO_AUTH_TOKEN=""
 export TWILIO_PHONE_FROM=""
 export TWILIO_PHONE_TO=""
+```
+
+## Troubleshooting
+
+### Python 2 requirement
+When building the app, the sub module node-gyp has a dependency on Python 2 at this time.
+
+### Node >=5.11.0 requirement
+If you receive a ``SyntaxError: Unexpected token ...`` upon running the `swa`
+command, make sure you are running a version of node that supports ES6
+syntax (5.11.0 and up).
+
+### libxmljs requirement
+Under some circumstances, libxmljs may throw an error that looks like this:
+
+```
+Error: Could not locate the bindings file. Tried:
+ → /root/swa-dashboard/node_modules/libxmljs/build/xmljs.node
+```
+
+You can fix it by rebuilding libxmljs manually:
+
+```
+sudo npm install -g node-gyp
+cd node_modules/libxmljs
+node-gyp rebuild
 ```
