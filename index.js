@@ -104,6 +104,45 @@ const isTwilioConfigured = process.env.TWILIO_ACCOUNT_SID &&
                            process.env.TWILIO_PHONE_FROM &&
                            process.env.TWILIO_PHONE_TO
 
+
+/**
+ * Validate input dates to past dates (invalid for Southwest)
+ *
+ * @return {Void}
+ */
+const checkIfPastDates = () => {
+  const today = new Date();
+  var outboundDate
+  var returnDate
+
+  // Convert date string into Date object
+  if (outboundDateString) {
+    outboundDate = new Date(outboundDateString)
+  } else {
+    throw new Error("Missing leave-date. If you don't know when you're leaving, how are you going to get anyhwere?")
+    process.exit(1);
+  }
+
+  if (returnDateString) {
+    returnDate = new Date(returnDateString)
+  }
+
+  // Check if the outbound or return date is before today (at least one calendar date before)
+  if (outboundDate.getYear() < today.getYear() && outboundDate.getMonth() < today.getMonth() && outboundDate.getDay() < today.getDay()) {
+    throw new Error("Your outbound date can't be in the past. That plane already departed!")
+    process.exit(1)
+  }
+
+  // Additional check in case we're searching one way only (i.e. no return date)
+  if (returnDate && (returnDate.getYear() < today.getYear() && returnDate.getMonth() < today.getMonth() && returnDate.getDay() < today.getDay())) {
+    throw new Error("Your return date can't be in the past. That plane already departed!")
+    process.exit(1)
+  }
+}
+
+// Validate immedaitely
+checkIfPastDates()
+
 /**
  * Dashboard renderer
  */
@@ -410,17 +449,66 @@ const parsePriceMarkup = (priceMarkup) => {
   }
 }
 
+
+/**
+ * Validate input dates to Southwest last bookable date
+ *
+ * @param {Str} lastDateString
+ *
+ * @return {Void}
+ */
+const checkIfFutureDates = (lastDateString) => {
+  // If the lastBookableDate is available, check leaveDate and returnDate are not after it.
+  if (lastDateString) {
+    const lastBookableDate = new Date(lastDateString)
+
+    const outboundDate = new Date(outboundDateString)
+    const returnDate = new Date(returnDateString)
+
+    // If either the outbound date or the return date are past the last bookable date,
+    // then we'll get $Infinity price.
+    //
+    // Here we want to display a user friendly message instead of throwing an error and ending the process
+    if (outboundDate.getYear() > lastBookableDate.getYear() ||
+        (outboundDate.getMonth() >= lastBookableDate.getMonth() && outboundDate.getDay() > lastBookableDate.getDay())) {
+      dashboard.log([
+        chalk.red(`Southwest doesn't have prices for flights after ${lastDateString} -- Your leave date was ${outboundDateString}`)
+      ])
+      return false
+    }
+
+    if (returnDate) {
+      if (returnDate.getYear() > lastBookableDate.getYear() ||
+         (returnDate.getMonth() >= lastBookableDate.getMonth() && returnDate.getDay() > lastBookableDate.getDay())) {
+        dashboard.log([
+          chalk.red(`Southwest doesn't have prices for flights after ${lastDateString}  -- You return date: ${returnDateString}`)
+        ])
+        return false
+      }
+    }
+
+    // Both are within a valid range
+    return true
+  }
+
+  // If for some reason there is not a last bookable date, try with the existing date(s)
+  return true
+}
+
+
 /**
  * Fetch latest Southwest prices
  *
  * @return {Void}
  */
 const fetch = () => {
-  const formData = {
-  }
-
+  var lastBookableDateValue
   osmosis
     .get("https://www.southwest.com")
+    .find("#lastBookableDate[value]")
+    .then((lastBookableDate) => {
+      lastBookableDateValue = lastBookableDate.value
+    })
     .submit(".booking-form--form", {
       twoWayTrip: !isOneWay,
       airTranRedirect: "",
@@ -486,6 +574,10 @@ const fetch = () => {
         }
       }
 
+      // Before adding the initial prices, validate the outbound/return dates to make sure they're not past
+      // the last bookable date posted by Southwest.
+      const datesAreValid = checkIfFutureDates(lastBookableDateValue)
+
       if (faresAreValid) {
         // Store current fares for next time
         prevLowestOutboundFare = lowestOutboundFare
@@ -511,9 +603,12 @@ const fetch = () => {
           }
         }
 
-        dashboard.log([
-          `Lowest fares for an outbound flight is currently ${formatPrice([lowestOutboundFare, outboundFareDiffString].filter(i => i).join(" "))}`,
-        ])
+        if (datesAreValid) {
+          dashboard.log([
+            `Lowest fares for an outbound flight is currently ${formatPrice([lowestOutboundFare, outboundFareDiffString].filter(i => i).join(" "))}`,
+            `Lowest fares for a return flight is currently ${formatPrice([lowestReturnFare, returnFareDiffString].filter(i => i).join(" "))}`
+          ])
+        }
 
         if (!isOneWay) {
           dashboard.log([
@@ -529,7 +624,11 @@ const fetch = () => {
 
       dashboard.render()
 
-      setTimeout(fetch, interval * TIME_MIN)
+      // We don't want to to continue to refetch flight prices if non exist.
+      // Clear the timeout interval
+      if (!datesAreValid) {
+        setTimeout(fetch, interval * TIME_MIN)
+      }
     })
 }
 
