@@ -587,11 +587,11 @@ const settings  = {
   },
   individualDealPrice: {
     displayString: `Individual deal price: ${individualDealPrice ? `<= ${formatPrice(individualDealPrice)}` : "disabled"}`,
-    isValidOneWay: false,
+    isValidOneWay: true,
   },
   totalDealPrice: {
     displayString: `Total deal price: ${totalDealPrice ? `<= ${formatPrice(totalDealPrice)}` : "disabled"}`,
-    isValidOneWay: true,
+    isValidOneWay: false,
   },
   smsAlerts: {
     displayString: `SMS alerts: ${isTwilioConfigured ? process.env.TWILIO_PHONE_TO : "disabled"}`,
