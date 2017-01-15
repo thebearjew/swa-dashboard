@@ -624,7 +624,7 @@ const fetch = () => {
 
       dashboard.render()
 
-      // We don't want to to continue to refetch flight prices if non exist.
+      // We don't want to to continue to refetch flight prices if none exist.
       // Clear the timeout interval
       if (!datesAreValid) {
         setTimeout(fetch, interval * TIME_MIN)
