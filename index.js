@@ -145,7 +145,7 @@ class Dashboard {
 
     // Graph return flight if one-way is not selected
     if (!isOneWay) {
-      this.grpahs.return = {
+      this.graphs.return = {
         title: "Destination/Return",
         x: [],
         y: [],
