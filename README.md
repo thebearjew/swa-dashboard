@@ -41,6 +41,21 @@ swa \
   --interval 5 # In minutes (optional)
 ```
 
+If you would like to look at flights going **one way** between two airports, you can use the `--one-way` flag. This ignores values entered with `--return-date` and `--return-time`, and `--total-deal-price`.
+
+```bash
+swa \
+  --one-way
+  --from 'DAL' \
+  --to 'LGA' \
+  --leave-date '11/01/2017' \
+  --leave-time anytime \ # Can be anytime, morning, afternoon, evening (optional)
+  --fare-type 'dollars' \ # Can be dollars or points (optional)
+  --passengers 2 \
+  --individual-deal-price 50 \ # In dollars or points (optional)
+  --interval 5 # In minutes (optional)
+```
+
 ### Twilio integration
 If you have a Twilio account (I'm using a free trial account) and you've set up
 a deal price threshold, you can set the following environment vars to set up SMS
@@ -66,7 +81,7 @@ command, make sure you are running a version of node that supports ES6
 syntax (5.11.0 and up).
 
 ### C++11 compiler requirement
-You may experience compilation errors when you attempt to run `npm link`.  If so, 
+You may experience compilation errors when you attempt to run `npm link`.  If so,
 you'll need to make sure you have a C++11 compiler installed on your system.
 If you're running on Windows this is sometimes resolved by installing the [Visual C++
 Build Tools](http://landinghub.visualstudio.com/visual-cpp-build-tools).  For \*nix

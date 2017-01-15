@@ -45,6 +45,7 @@ var individualDealPrice
 var totalDealPrice
 var interval = 30 // In minutes
 var fareType = "DOLLARS"
+var isOneWay = false
 
 // Parse command line options (no validation, sorry!)
 process.argv.forEach((arg, i, argv) => {
@@ -82,8 +83,20 @@ process.argv.forEach((arg, i, argv) => {
     case "--interval":
       interval = parseFloat(argv[i + 1])
       break
+    case "--one-way":
+      isOneWay = true
+      break
   }
 })
+
+// Remove invalid fields for a one-way flight
+// Doing this after all flags are parsed in the event
+// flags are out of order
+if (isOneWay) {
+  returnDateString = ""
+  returnTimeOfDay = ""
+  totalDealPrice = undefined;
+}
 
 // Check if Twilio env vars are set
 const isTwilioConfigured = process.env.TWILIO_ACCOUNT_SID &&
@@ -128,7 +141,11 @@ class Dashboard {
           line: "red"
         }
       },
-      return: {
+    }
+
+    // Graph return flight if one-way is not selected
+    if (!isOneWay) {
+      this.grpahs.return = {
         title: "Destination/Return",
         x: [],
         y: [],
@@ -219,6 +236,7 @@ class Dashboard {
       }
     }
 
+    // For each widget, create a new contrib widget object and replace
     for (let name in widgets) {
       let widget = widgets[name]
 
@@ -252,20 +270,26 @@ class Dashboard {
   plot(prices) {
     const now = format("MM/dd/yy-hh:mm:ss", new Date())
 
+    const data = []
+
     Object.assign(this.graphs.outbound, {
       x: [...this.graphs.outbound.x, now],
       y: [...this.graphs.outbound.y, prices.outbound]
     })
 
-    Object.assign(this.graphs.return, {
-      x: [...this.graphs.return.x, now],
-      y: [...this.graphs.return.y, prices.return]
-    })
+    data.push(this.graphs.outbound)
 
-    this.widgets.graph.setData([
-      this.graphs.outbound,
-      this.graphs.return
-    ])
+    // Add data point if one-way is not selected
+    if (!isOneWay) {
+      Object.assign(this.graphs.return, {
+        x: [...this.graphs.return.x, now],
+        y: [...this.graphs.return.y, prices.return]
+      })
+
+      data.push(this.graphs.return)
+    }
+
+    this.widgets.graph.setData(data)
   }
 
   /**
@@ -318,6 +342,7 @@ class Dashboard {
    * @return {Void}
    */
   settings(config) {
+    // At this stage, this.widgets.settings is a contrib Log widget that has an `add(line)` function
     config.forEach((c) => this.widgets.settings.add(c))
   }
 }
@@ -392,22 +417,24 @@ const parsePriceMarkup = (priceMarkup) => {
  * @return {Void}
  */
 const fetch = () => {
+  const formData = {
+    twoWayTrip: (!isOneWay),
+    airTranRedirect: "",
+    returnAirport: (isOneWay ? "" : "RoundTrip"),
+    outboundTimeOfDay,
+    returnTimeOfDay,
+    seniorPassengerCount: 0,
+    fareType,
+    originAirport,
+    destinationAirport,
+    outboundDateString,
+    returnDateString,
+    adultPassengerCount
+  }
+
   osmosis
     .get("https://www.southwest.com")
-    .submit(".booking-form--form", {
-      twoWayTrip: true,
-      airTranRedirect: "",
-      returnAirport: "RoundTrip",
-      outboundTimeOfDay,
-      returnTimeOfDay,
-      seniorPassengerCount: 0,
-      fareType,
-      originAirport,
-      destinationAirport,
-      outboundDateString,
-      returnDateString,
-      adultPassengerCount
-    })
+    .submit(".booking-form--form",formData)
     .find("#faresOutbound .product_price")
     .then((priceMarkup) => {
       const price = parsePriceMarkup(priceMarkup)
@@ -416,7 +443,10 @@ const fetch = () => {
     .find("#faresReturn .product_price")
     .then((priceMarkup) => {
       const price = parsePriceMarkup(priceMarkup)
-      fares.return.push(price)
+      // Only record return prices if isOneWay is flight is not selected
+      if (!isOneWay) {
+        fares.return.push(price)
+      }
     })
     .done(() => {
       const lowestOutboundFare = Math.min(...fares.outbound)
@@ -486,8 +516,13 @@ const fetch = () => {
 
         dashboard.log([
           `Lowest fares for an outbound flight is currently ${formatPrice([lowestOutboundFare, outboundFareDiffString].filter(i => i).join(" "))}`,
-          `Lowest fares for a return flight is currently ${formatPrice([lowestReturnFare, returnFareDiffString].filter(i => i).join(" "))}`
         ])
+
+        if (!isOneWay) {
+          dashboard.log([
+            `Lowest fares for a return flight is currently ${formatPrice([lowestReturnFare, returnFareDiffString].filter(i => i).join(" "))}`
+          ])
+        }
 
         dashboard.plot({
           outbound: lowestOutboundFare,
@@ -513,20 +548,78 @@ airports.forEach((airport) => {
   }
 })
 
+const settings  = {
+  originAirport: {
+    displayString: `Origin airport: ${originAirport}`,
+    isValidOneWay: true,
+  },
+  destinationAirport: {
+    displayString: `Destination airport: ${destinationAirport}`,
+    isValidOneWay: true,
+  },
+  outboundDate: {
+    displayString: `Outbound date: ${outboundDateString}`,
+    isValidOneWay: true,
+  },
+  outboundTime: {
+    displayString: `Outbound time: ${outboundTimeOfDay}`,
+    isValidOneWay: true,
+  },
+  returnDate: {
+    displayString: `Return date: ${returnDateString}`,
+    isValidOneWay: false,
+  },
+  returnTime: {
+    displayString: `Return time: ${returnTimeOfDay}`,
+    isValidOneWay: false,
+  },
+  fareType: {
+    displayString: `Fare type: ${fareType}`,
+    isValidOneWay: true,
+  },
+  passengers: {
+    displayString: `Passengers: ${adultPassengerCount}`,
+    isValidOneWay: true,
+  },
+  interval: {
+    displayString: `Interval: ${pretty(interval * TIME_MIN)}`,
+    isValidOneWay: true,
+  },
+  individualDealPrice: {
+    displayString: `Individual deal price: ${individualDealPrice ? `<= ${formatPrice(individualDealPrice)}` : "disabled"}`,
+    isValidOneWay: false,
+  },
+  totalDealPrice: {
+    displayString: `Total deal price: ${totalDealPrice ? `<= ${formatPrice(totalDealPrice)}` : "disabled"}`,
+    isValidOneWay: true,
+  },
+  smsAlerts: {
+    displayString: `SMS alerts: ${isTwilioConfigured ? process.env.TWILIO_PHONE_TO : "disabled"}`,
+    isValidOneWay: true,
+  }
+}
+
+// If --one-way is enabled, only display values in the Settings widget that are relevant
+// to a one-way trip.
+const getValidSettingsStrings = (settings) => {
+  const settingsStrings = []
+
+  for (const s in settings) {
+    if (isOneWay) {
+      if (settings[s].isValidOneWay) {
+        settingsStrings.push(settings[s].displayString)
+      }
+    }
+    else {
+      settingsStrings.push(settings[s].displayString)
+    }
+  }
+
+  return settingsStrings
+}
+
 // Print settings
-dashboard.settings([
-  `Origin airport: ${originAirport}`,
-  `Destination airport: ${destinationAirport}`,
-  `Outbound date: ${outboundDateString}`,
-  `Outbound time: ${outboundTimeOfDay}`,
-  `Return date: ${returnDateString}`,
-  `Return time: ${returnTimeOfDay}`,
-  `Fare type: ${fareType}`,
-  `Passengers: ${adultPassengerCount}`,
-  `Interval: ${pretty(interval * TIME_MIN)}`,
-  `Individual deal price: ${individualDealPrice ? `<= ${formatPrice(individualDealPrice)}` : "disabled"}`,
-  `Total deal price: ${totalDealPrice ? `<= ${formatPrice(totalDealPrice)}` : "disabled"}`,
-  `SMS alerts: ${isTwilioConfigured ? process.env.TWILIO_PHONE_TO : "disabled"}`
-])
+dashboard.settings(getValidSettingsStrings(settings))
 
 fetch()
+
