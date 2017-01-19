@@ -548,78 +548,20 @@ airports.forEach((airport) => {
   }
 })
 
-const settings  = {
-  originAirport: {
-    displayString: `Origin airport: ${originAirport}`,
-    isValidOneWay: true,
-  },
-  destinationAirport: {
-    displayString: `Destination airport: ${destinationAirport}`,
-    isValidOneWay: true,
-  },
-  outboundDate: {
-    displayString: `Outbound date: ${outboundDateString}`,
-    isValidOneWay: true,
-  },
-  outboundTime: {
-    displayString: `Outbound time: ${outboundTimeOfDay}`,
-    isValidOneWay: true,
-  },
-  returnDate: {
-    displayString: `Return date: ${returnDateString}`,
-    isValidOneWay: false,
-  },
-  returnTime: {
-    displayString: `Return time: ${returnTimeOfDay}`,
-    isValidOneWay: false,
-  },
-  fareType: {
-    displayString: `Fare type: ${fareType}`,
-    isValidOneWay: true,
-  },
-  passengers: {
-    displayString: `Passengers: ${adultPassengerCount}`,
-    isValidOneWay: true,
-  },
-  interval: {
-    displayString: `Interval: ${pretty(interval * TIME_MIN)}`,
-    isValidOneWay: true,
-  },
-  individualDealPrice: {
-    displayString: `Individual deal price: ${individualDealPrice ? `<= ${formatPrice(individualDealPrice)}` : "disabled"}`,
-    isValidOneWay: true,
-  },
-  totalDealPrice: {
-    displayString: `Total deal price: ${totalDealPrice ? `<= ${formatPrice(totalDealPrice)}` : "disabled"}`,
-    isValidOneWay: false,
-  },
-  smsAlerts: {
-    displayString: `SMS alerts: ${isTwilioConfigured ? process.env.TWILIO_PHONE_TO : "disabled"}`,
-    isValidOneWay: true,
-  }
-}
-
-// If --one-way is enabled, only display values in the Settings widget that are relevant
-// to a one-way trip.
-const getValidSettingsStrings = (settings) => {
-  const settingsStrings = []
-
-  for (const s in settings) {
-    if (isOneWay) {
-      if (settings[s].isValidOneWay) {
-        settingsStrings.push(settings[s].displayString)
-      }
-    }
-    else {
-      settingsStrings.push(settings[s].displayString)
-    }
-  }
-
-  return settingsStrings
-}
-
-// Print settings
-dashboard.settings(getValidSettingsStrings(settings))
+dashboard.settings([
+  `Origin airport: ${originAirport}`,
+  `Destination airport: ${destinationAirport}`,
+  `Outbound date: ${outboundDateString}`,
+  `Outbound time: ${outboundTimeOfDay}`,
+  !isOneWay && `Return date: ${returnDateString}`,
+  !isOneWay && `Return time: ${returnTimeOfDay}`,
+  `Fare type: ${fareType}`,
+  `Passengers: ${adultPassengerCount}`,
+  `Interval: ${pretty(interval * TIME_MIN)}`,
+  !isOneWay && `Individual deal price: ${individualDealPrice ? `<= ${formatPrice(individualDealPrice)}` : "disabled"}`,
+  `Total deal price: ${totalDealPrice ? `<= ${formatPrice(totalDealPrice)}` : "disabled"}`,
+  `SMS alerts: ${isTwilioConfigured ? process.env.TWILIO_PHONE_TO : "disabled"}`
+].filter(s => s))
 
 fetch()
 
