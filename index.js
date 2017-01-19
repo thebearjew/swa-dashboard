@@ -418,23 +418,24 @@ const parsePriceMarkup = (priceMarkup) => {
  */
 const fetch = () => {
   const formData = {
-    twoWayTrip: (!isOneWay),
-    airTranRedirect: "",
-    returnAirport: (isOneWay ? "" : "RoundTrip"),
-    outboundTimeOfDay,
-    returnTimeOfDay,
-    seniorPassengerCount: 0,
-    fareType,
-    originAirport,
-    destinationAirport,
-    outboundDateString,
-    returnDateString,
-    adultPassengerCount
   }
 
   osmosis
     .get("https://www.southwest.com")
-    .submit(".booking-form--form",formData)
+    .submit(".booking-form--form", {
+      twoWayTrip: !isOneWay,
+      airTranRedirect: "",
+      returnAirport: isOneWay ? "" : "RoundTrip",
+      outboundTimeOfDay,
+      returnTimeOfDay,
+      seniorPassengerCount: 0,
+      fareType,
+      originAirport,
+      destinationAirport,
+      outboundDateString,
+      returnDateString,
+      adultPassengerCount
+    }).
     .find("#faresOutbound .product_price")
     .then((priceMarkup) => {
       const price = parsePriceMarkup(priceMarkup)
