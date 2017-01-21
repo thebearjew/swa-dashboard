@@ -119,7 +119,7 @@ const checkIfPastDates = () => {
   if (outboundDateString) {
     outboundDate = new Date(outboundDateString)
   } else {
-    throw new Error("Missing leave-date. If you don't know when you're leaving, how are you going to get anyhwere?")
+    throw new Error("Missing leave-date. If you don't know when you're leaving, how are you going to get anywhere?")
     process.exit(1);
   }
 
@@ -140,7 +140,7 @@ const checkIfPastDates = () => {
   }
 }
 
-// Validate immedaitely
+// Validate immediately
 checkIfPastDates()
 
 /**
@@ -481,7 +481,7 @@ const checkIfFutureDates = (lastDateString) => {
       if (returnDate.getYear() > lastBookableDate.getYear() ||
          (returnDate.getMonth() >= lastBookableDate.getMonth() && returnDate.getDay() > lastBookableDate.getDay())) {
         dashboard.log([
-          chalk.red(`Southwest doesn't have prices for flights after ${lastDateString}  -- You return date: ${returnDateString}`)
+          chalk.red(`Southwest doesn't have prices for flights after ${lastDateString}  -- Your return date: ${returnDateString}`)
         ])
         return false
       }
@@ -626,7 +626,7 @@ const fetch = () => {
 
       // We don't want to to continue to refetch flight prices if none exist.
       // Clear the timeout interval
-      if (!datesAreValid) {
+      if (datesAreValid) {
         setTimeout(fetch, interval * TIME_MIN)
       }
     })
